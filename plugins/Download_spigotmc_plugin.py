@@ -2,7 +2,7 @@ import asyncio
 import os
 import sys
 from lxml import etree
-from plugins.tools.tqdm_progress import aiohttp_progress
+from tools.tqdm_progress import aiohttp_progress
 from tools.spigotmcTool import get_aiohttp_client
 
 PluginsOSPath = "C:/PaperMC/plugins/"
