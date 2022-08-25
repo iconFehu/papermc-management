@@ -1,20 +1,17 @@
 import asyncio
-import functools
 import os
-import pathlib
-import shutil
+import time
 
 import aiohttp
 import requests
 from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.wait import WebDriverWait
+from selenium.common import TimeoutException
 from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.support.wait import WebDriverWait
 from webdriver_manager.chrome import ChromeDriverManager
-from tqdm import tqdm
 
 p = os.popen(r"""
-"C:\Users\fehu\AppData\Local\Google\Chrome\Application\chrome" --remote-debugging-port=4444 --user-data-dir="C:\Users\fehu\AppData\Local\Google\Chrome\User Data 1"
+"C:\Users\fehu\AppData\Local\Google\Chrome\Application\chrome" --remote-debugging-port=4444 --user-data-dir="C:\Users\fehu\AppData\Local\Google\Chrome\User Data 381"
 """.replace("\n", ""))
 # print(p.read())
 
@@ -24,6 +21,14 @@ options = webdriver.ChromeOptions()
 # options.add_experimental_option('useAutomationExtension', False)
 options.add_experimental_option("debuggerAddress", "127.0.0.1:4444")
 driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+
+# print(os.getcwd())
+# # 读取文件
+# with open('../../stealth.min.js', 'r') as f:
+#     js = f.read()
+#     print(js)
+# # 调用函数在页面加载前执行脚本
+# driver.execute_cdp_cmd('Page.addScriptToEvaluateOnNewDocument', {'source': js})
 
 # session = requests.session()
 # session.trust_env = False
@@ -44,10 +49,24 @@ print(userAgent)
 async def get_aiohttp_client(url, title):
     global driver, userAgent
     driver.get(url)
-    print(driver.title)
-    WebDriverWait(driver, 11).until(
-        lambda d: title in d.title
-    )
+
+    try:
+        print(driver.title)
+        WebDriverWait(driver, 2).until(
+            lambda d: title in d.title
+        )
+    except TimeoutException:
+        print('TimeoutException')
+        handle = driver.current_window_handle
+        driver.service.stop()
+        await asyncio.sleep(6)
+        driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+        driver.switch_to.window(handle)
+
+        print(driver.title)
+        WebDriverWait(driver, 11).until(
+            lambda d: title in d.title
+        )
     cookie = '; '.join([f"{_.get('name')}={_.get('value')}"
                         for _ in driver.get_cookies() if (_.get('domain').endswith('.spigotmc.org'))])
     print(cookie)
@@ -56,8 +75,8 @@ async def get_aiohttp_client(url, title):
         'sec-ch-ua': '" Not A;Brand";v="99", "Chromium";v="96", "Google Chrome";v="96"',
         'cookie': cookie
     }
+    driver.close()
     return aiohttp.ClientSession(trust_env=False, headers=headers)
-
 
 
 # def session_download(url, filename=None):
@@ -86,8 +105,8 @@ async def main():
     # print(spigotmc_client)
     # print(github_client)
     result = await asyncio.gather(*[
-        # get_aiohttp_client('https://www.spigotmc.org/', 'Minecraft'),
-        get_aiohttp_client('https://github.com/', 'GitHub')
+        get_aiohttp_client('https://www.spigotmc.org/', 'Minecraft'),
+        # get_aiohttp_client('https://github.com/', 'GitHub')
     ])
     # for client in result:
     #     print(client.cookie_jar)
